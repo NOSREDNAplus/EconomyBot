@@ -16,7 +16,7 @@ def adduser(user:str) -> None:
     """Adds user to database."""
     with open("data.json", "r") as f:
         d = json.load(f)
-        d[user] = {"money": 0, "banked-money":0}
+        d[user] = {"money": 0, "banked-money":0, "products":{}, "products-owned":{}}
         f.close()
         with open("data.json", "w") as f:
             f.write(json.dumps(d, indent=4))
@@ -46,6 +46,7 @@ class MyClient(discord.Client):
         print(f'Logged on as {self.user}!')
         threading.Thread(target=mainloop).start()
     async def on_message(self, message):
+        global interestrate
         if message.author == client.user:
             return
         if message.content.startswith('$changelog'):
@@ -58,6 +59,22 @@ class MyClient(discord.Client):
             with open("data.json", "w") as f:
                 f.write(json.dumps(d, indent=4))
                 f.close()
+        if message.content.startswith('$ranks'):
+            usercheck(message.author.name)
+            #command code
+            with open("data.json", "r") as f:
+                d = json.load(f)
+                l = []
+                for i in d.items():
+                    print(i)
+                    l.append((i[0], i[1]['money']+i[1]['banked-money']))
+                t = sorted(l, key = lambda x: x[1], reverse = True)[:5] # who cares about future proofing code
+                await message.channel.send(f">>> ***Rankings***\n1st {t[0][0]}- ${t[0][1]}\n2nd {t[1][0]} - ${t[1][1]}\n3rd {t[2][0]} - ${t[2][1]}\n4th {t[3][0]} - ${t[3][1]}\n5th {t[4][0]} - ${t[4][1]}")
+                
+            with open("data.json", "w") as f:
+                f.write(json.dumps(d, indent=4))
+                f.close()
+            print(f"Sucessfully showed {message.author} ranks")
         if message.content.startswith('$unbank'):
             usercheck(message.author.name)
             #command code
@@ -101,13 +118,123 @@ successfully unbanked ${p}""")
             with open("data.json", "w") as f:
                 f.write(json.dumps(d, indent=4))
                 f.close()
+        if message.content.startswith('$stats'):
+            usercheck(message.author.name)
+            #command code
+            with open("data.json", "r") as f:
+                d = json.load(f)
+                await message.channel.send(f">>> **Stats***\nInterest Rate: {MyClient.interestrate}")
+                print(f"Showed stats to {message.author.name}")
+                f.close()
+            with open("data.json", "w") as f:
+                f.write(json.dumps(d, indent=4))
+                f.close()
+        if message.content.startswith('$profile'):
+            usercheck(message.author.name)
+            #command code
+            with open("data.json", "r") as f:
+                d = json.load(f)
+                p = None
+                if " " in message.content:
+                    p = message.content.split(" ", 1)[1]
+                if p != None:
+                    if userexists(p):
+                        l = []
+                        for i in d.items():
+                            l.append(i[1]['banked-money']+i[1]["money"])
+                        t = sorted(l, reverse = True)
+                        print(t)
+                        await message.channel.send(f">>> ***{p}***\nWealth - Acccount: {d[p]["money"]} Banked: {d[p]["banked-money"]} Total: {d[p]["money"]+d[p]["banked-money"]}\nRank: {t.index(d[p]["money"]+d[p]["banked-money"])+1}\nNet Worth: None")
+                    else:
+                        await message.channel.send(f">>> ***{message.author.name}***\nUser doesn't exist!")
+                        return
+                else:
+                    l = []
+                    for i in d.items():
+                        l.append(i[1]['banked-money']+i[1]["money"])
+                    t = sorted(l,  reverse = True)
+                    print(t)
+                    await message.channel.send(f">>> ***{message.author.name}***\nWealth - Account: {d[message.author.name]["money"]} Banked: {d[message.author.name]["banked-money"]} Total: {d[message.author.name]["money"]+d[message.author.name]["banked-money"]}\nRank: {t.index(d[message.author.name]["money"]+d[message.author.name]["banked-money"])+1}\nNet Worth: None")
+                print(f"Showed profile to {message.author.name}")
+                f.close()
+            with open("data.json", "w") as f:
+                f.write(json.dumps(d, indent=4))
+                f.close()
         if message.content.startswith('$help'):
             usercheck(message.author.name)
             #command code
             c = random.randint(1, 25)
             with open("data.json", "r") as f:
                 d = json.load(f)
-                await message.channel.send(f'>>> # Commands:\n $balance, $beg, $gamble, $give, $steal, $snoop, $bank, $unbank, $round')
+                await message.channel.send(f'>>> # Commands:\n- $beg [optional: times done]\n- $profile [optional: user]\n- $ranks [optional: user]\n- $gamble [money bet] [optional: times done]\n- $give [user] [amount]\n- $steal [user]\n- $bank [amount]\n- $unbank [amount]\n- $round')
+                f.close()
+            with open("data.json", "w") as f:
+                f.write(json.dumps(d, indent=4))
+                f.close()
+            print(f"Sucessfully added {c} dollar to {message.author}'s data directory")
+        if message.content.startswith("$products"):
+            usercheck(message.author.name)
+            #commmand code
+            with open("data.json", "r") as f:
+                d = json.load(f)
+                i = []
+                for k in d.items():
+                    for t in k["products"]:
+                        i.append("\n- "+t)
+                await message.channel.send(f""">>> ***Products***""")
+                f.close()
+            with open("data.json", "w") as f:
+                f.write(json.dumps(d, indent=4))
+                f.close()
+        if message.content.startswith("$inventory"):
+            usercheck(message.author.name)
+            #commmand code
+            with open("data.json", "r") as f:
+                d = json.load(f)
+                i = []
+                for k in d[message.author.name]["products-owned"]:
+                    i.append(k)
+                await message.channel.send(f""">>> ***{message.author}'s Inventory***\n{', '.join(i)}""")
+                f.close()
+            with open("data.json", "w") as f:
+                f.write(json.dumps(d, indent=4))
+                f.close()
+        if message.content.startswith('$beg'):
+            usercheck(message.author.name)
+            #command code
+            p = None
+            if " " in message.content:
+                p = message.content.split(" ", 1)[1]
+                if not str(p).replace("-", "").replace(".","").isdigit():
+                    return
+                else:
+                    p = int(p.split(".")[0])
+                    if p > 15:
+                        await message.channel.send(f'>>> ***{message.author}***\n beg max is 15!')
+                        return
+                d = json.load(f)
+                if p == None:
+                    c = random.randint(1, 80)
+                    if 
+                    if c == 1:
+                        d[message.author.name]["money"] = d[message.author.name].get("money") + 5000
+                        await message.channel.send(f'>>> ***{message.author}***\n rolled and got ${5000} from ***The Slots***!')
+                    else: 
+                        await message.channel.send(f'>>> ***{message.author}***\n rolled and got ${5000} from ***The Slots***!')
+                else:
+                    i = 0
+                    while i != p:
+                        bc = random.randint(1, 50)
+                        if bc == 1:
+                            c = random.randint(50, 125)
+                            celeb = random.choice(celebs)
+                            d[message.author.name]["money"] = d[message.author.name].get("money") + c
+                            await message.channel.send(f'>>> ***{message.author}***\n begged and got ${c} from ***{celeb}***!')
+                        else:
+                            c = random.randint(1, 25)
+                            d[message.author.name]["money"] = d[message.author.name].get("money") + c
+                            await message.channel.send(f'>>> ***{message.author}***\n begged and got ${c}!')
+                        i += 1
                 f.close()
             with open("data.json", "w") as f:
                 f.write(json.dumps(d, indent=4))
@@ -173,7 +300,7 @@ successfully unbanked ${p}""")
                         p[1] = int(p[1])
                         p[2] = int(p[2])
                         if p[2] > 15:
-                            await message.channel.send(f'>>> ***{message.author}***\n beg max is 15!')
+                            await message.channel.send(f'>>> ***{message.author}***\n gamble max is 15!')
                             return
                     i = 0
                     while i != p[2]:
@@ -239,18 +366,6 @@ successfully unbanked ${p}""")
                 f.write(json.dumps(d, indent=4))
                 f.close()
             print(f"Sucessfully rounded balance to {message.author}")
-        if message.content.startswith('$balance'):
-            usercheck(message.author.name)
-            #command code
-            with open("data.json", "r") as f:
-                d = json.load(f)
-                await message.channel.send(f""">>> ***{message.author}*** 
-You Have ${d[message.author.name]["banked-money"]} in the bank and ${d[message.author.name]["money"]} in your account""")
-                f.close()
-            with open("data.json", "w") as f:
-                f.write(json.dumps(d, indent=4))
-                f.close()
-            print(f"Sucessfully showed balance to {message.author}")
         if message.content.startswith('$steal'):
             usercheck(message.author.name)
             #command code
@@ -272,18 +387,6 @@ You Have ${d[message.author.name]["banked-money"]} in the bank and ${d[message.a
             with open("data.json", "w") as f:
                 f.write(json.dumps(d, indent=4))
                 f.close()
-        if message.content.startswith('$snoop'):
-            usercheck(message.author.name)
-            #command code
-            with open("data.json", "r") as f:
-                d = json.load(f)
-                p = message.content.split(" ", 1)[1]
-                await message.channel.send(f">>> ***{p}***\n has ${d[p]["money"]}")
-                f.close()
-            with open("data.json", "w") as f:
-                f.write(json.dumps(d, indent=4))
-                f.close()
-            print(f"Sucessfully showed balance to {message.author}")
 intents = discord.Intents.default()
 intents.message_content = True
 client = MyClient(intents=intents)
