@@ -277,7 +277,7 @@ successfully unbanked ${p}""")
                         t = sorted(l, reverse = True)
                         print(t)
                         if getusernickname(p) == None:
-                            await message.channel.send(f""">>> ***{p}***\nWealth - Acccount: {d[p]["money"]} Banked: {d[p]["banked-money"]} Total: {d[p]["money"]+d[p]["banked-money"]}\nRank: {t.index(d[p]["money"]+d[p]["banked-money"])+1}\nNet Worth: ${getnetworth(p)}""")
+                            await message.channel.send(f""">>> ***{p}***\nWealth - Acccount: {int(float(d[p]["money"]))} Banked: {int(float(d[p]["banked-money"]))} Total: {int(float(d[p]["money"]+d[p]["banked-money"]))}\nRank: {t.index(d[p]["money"]+d[p]["banked-money"])+1}\nNet Worth: ${int(float(getnetworth(p)))}""")
                         else:
                             await message.channel.send(f""">>> ***"{getusernickname(p)}"*** - ***{p}***\nWealth - Acccount: {d[p]["money"]} Banked: {d[p]["banked-money"]} Total: {d[p]["money"]+d[p]["banked-money"]}\nRank: {t.index(d[p]["money"]+d[p]["banked-money"])+1}\nNet Worth: ${getnetworth(p)}""")
                     else:
